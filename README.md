@@ -48,6 +48,29 @@ language and action verbs (*rate good*, *save enough*, *reduce overall*).
 Random forest performed best overall. XGBoost gained more from text features,
 which suggests gradient boosting may make better use of alternative data.
 
+## Regulatory constraints on text features
+
+Text features add predictive signal, but U.S. fair-lending law makes them
+impractical to use in production underwriting:
+
+- **Adverse action reasons (ECOA / Regulation B, 12 CFR 1002.9).** A lender that
+  denies an application must give the applicant the specific principal reasons,
+  and those reasons must accurately describe the factors the model actually used.
+  A decision driven by an ensemble of 50 bigrams cannot be explained in those
+  terms, and "phrases in your loan description" is not an acceptable reason.
+- **Prohibited bases (ECOA, 15 U.S.C. 1691; Regulation B, 12 CFR 1002.6(b)).**
+  Creditors may not consider race, color, religion, national origin, sex, marital
+  status or age. Free-form text regularly reveals these attributes. In this
+  project, several of the highest-risk bigrams refer to spouses and family
+  (*husband worked*, *emergency family*), which act as stand-ins for marital
+  status and sex.
+
+The regulatory landscape has shifted recently: the CFPB withdrew its guidance on
+adverse action notices for complex models (Circulars 2022-03 and 2023-03) in
+May 2025, and a 2026 amendment to Regulation B removed disparate-impact liability
+under ECOA, effective July 21, 2026. Neither change removes the two requirements
+above, and state fair-lending laws may impose further limits.
+
 ## Repository
 
 | File | Contents |
