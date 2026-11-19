@@ -1,41 +1,61 @@
-## Loan Performance Prediction: Can a Machine replace a Loan Officer?
+# Loan Performance Prediction: Can a Machine Replace a Loan Officer?
 
-### 1. Goal:
+Machine learning models that predict charge-off vs. full repayment on LendingClub
+unsecured personal loans (2007–2011), and a test of whether borrower-written loan
+descriptions add predictive power.
 
-There are two objectives in this project.
+## Objectives
 
-1) Design and build a machine learning model to predict binary loan performance indicators (charge-offs and paid-off) using LendingClub's unsecured personal loans from 2007-2011. 
+1. Predict binary loan outcomes (charged-off vs. paid-off).
+2. Measure the incremental value of text features from the free-form loan description.
 
-2) Test how well text features enhance loan performance prediction. 
+## Evaluation metric
 
-### 2. Defining a Performance metric:
+Charge-offs make up roughly 14% of the data, so a model that always predicts
+repayment reaches 86% accuracy. **Recall** on charged-off loans is used instead,
+since screening out uncreditworthy borrowers is the costly error to avoid
+(Stiglitz and Weiss, 1981).
 
-Accurately predicting loan performance is an important function to all stakeholders. On one hand, it is important to extend credit to those that are creditworthy, in order to not only maximize revenue, but also provide individuals with opportunities and prevent credit rationing. On the other, it is also critical to screen out uncreditworthy applicants, to avoid losses and adverse welfare effects to the delinquent borrower <b><i>(Stiglitz and Weiss 1981)</i></b>. ``Accuracy`` appears to be a great candidate for  a performance metric since it takes into account both concerns. However, with imbalanced datasets, ``accuracy`` is misleading. A naive model that blindly predicts the majority label can achieve a high accuracy score. For instance, in 2007-2011 Lending Club data, roughly 14% of datapoints are charged-off, and a naive model would be able to achieve 86% accuracy. Thus, I choose ``Recall``, the rate at which charged-off borrowers are correctly predicted by the model, as my performance metric.     
+## Approach
 
-### 3. Data preprocessing and EDA:
+- **Preprocessing:** dropped columns with missing values; set rare events
+  (bankruptcies, collections) to 0, then excluded them for low variance;
+  winsorized income, account counts and revolving balance at the 1st/99th percentiles.
+- **Financial features:** removed identifiers and highly collinear columns, keeping
+  core credit and borrower attributes (DTI, loan amount, loan purpose, employment length).
+- **Text features:** built bigrams from loan descriptions following Netzer, Lemaire
+  and Herzenstein (2019) and scored each by its odds of default,
+  P(bigram | defaulted) / P(bigram | repaid). Candidates (the 200 most frequent
+  bigrams plus the 50 highest- and lowest-odds bigrams) were ranked with a
+  text-only decision tree, and the top 50 were kept.
+- **Models:** logistic regression, random forest and XGBoost.
 
-Before designing the models, I take a few steps to address missing values and outliers. I drop columns with missing values and impute values for rare events such as Bankruptcies and Collections with 0 instead of the mean. Eventually, all of these imputed variables have such low variance that I decide not to include them as features. For variables with considerably large variance such as income, number of accounts and revolving balance, I winsorize at the 1% and 99% levels in order to reduce the effect of outliers. Additionally, I explore LendingClub's free form text field that allows the applicant to write a note to prospective investors. I construct bigrams following <b>Netzer, Lemaire and Herzenstein 2019</b>, and calculate the odds of default for each bigram with the following formula:
+## Text insights
 
-![text](https://latex.codecogs.com/svg.latex?\frac{P(bigram|defaulted)}{P(bigram|repaid)}) 
+Bigrams with the highest odds of default relate to family (*husband worked*,
+*emergency family*), uncertainty (*free worry*, *like stress*) and absolutes
+(*always stay*, *cards always*). Those with the lowest odds use specific credit
+language and action verbs (*rate good*, *save enough*, *reduce overall*).
 
-For the top 50 bigrams with the highest odds of default, bigrams involving family <b>(('husband', 'worked'), ('emergency', 'family'))</b>, uncertainty <b>(('free', 'worry'), ('like', 'stress'))</b> and extremities <b>(('always', 'stay')</b>, <b>('cards', 'always'))</b> appear, while the top 50 bigrams with the lowest odds of default feature specific credit terminology and verbs <b>(('rate', 'good')</b>, <b>('save', 'enough')</b>, <b>('reduce', 'overall'))</b>.
+![Bigrams with highest odds of default](figures/chgoff_bigrams.jpg)
 
-![default_bigrams](https://github.com/daniel-d-wu/Online-Loan-Default-Prediction/blob/main/figures/chgoff_bigrams.jpg)
+![Bigrams with lowest odds of default](figures/paid_bigrams.jpg)
 
-![paid_bigrams](https://github.com/daniel-d-wu/Online-Loan-Default-Prediction/blob/main/figures/paid_bigrams.jpg)
+## Results
 
+| Model | Recall | Recall gain from text features |
+|---|---|---|
+| Random forest | **82.4%** | +1.2% |
+| XGBoost | 62.0% | +2.0% |
+| Logistic regression | 54.0% | — |
 
-### 4. Feature Engineering:
+Random forest performed best overall. XGBoost gained more from text features,
+which suggests gradient boosting may make better use of alternative data.
 
-I exclude columns that are not helpful, such as Example IDs, and columns with high collinearity with other variables, leaving me with important credit and personal characteristics such as DTI, Loan Amount, Loan Purpose and Years of Employment. 
+## Repository
 
-In addition to Financial features, I create an expanded set of features using the top 200 most common bigrams found in the free form field, along with the top 50 bigrams with the highest (and lowest) odds of default constructed in the EDA section. I run a simple decision tree classifier with only text features, in order to determine the (feature) importance of each bigram, and select the top 50 bigrams with the highest importance.
-
-### 5. Performance Results:
-
-The best model was Random Forest with a ``Recall`` of 82.4%. XGBoost had ``Recall`` of 62% and Logistic regression had a ``Recall`` of 54%.
-
-### 6. Text Enhancement Results:
-
-``Recall`` for the XGBoost model improved by 2.0% after the addition of text features, while ``Recall`` increased by 1.2% for the Random Forest model. This suggest although Random Forests performed better overall, additional improvements that incorporate non-traditional/alternative data may be better incorporated in a gradient boosting model.
-
+| File | Contents |
+|---|---|
+| `lending_club_EDA.ipynb` | Data cleaning, exploratory analysis and bigram analysis |
+| `lending_club_modeling.ipynb` | Feature engineering, model training and evaluation |
+| `figures/` | Bigram charts, ROC curves and confusion matrices |
