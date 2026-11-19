@@ -1,8 +1,4 @@
-# Loan Performance Prediction: Can a Machine Replace a Loan Officer?
-
-Machine learning models that predict charge-off vs. full repayment on LendingClub
-unsecured personal loans (2007–2011), and a test of whether borrower-written loan
-descriptions add predictive power.
+# Text Analysis for Charge-off prediction
 
 ## Objectives
 
